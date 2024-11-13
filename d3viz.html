@@ -35,79 +35,87 @@
     const height = svg.attr("height");
     const margin = {top: 20, right: 20, bottom: 50, left: 60};
 
-    // Load data
-    d3.csv("Cleaned_Students_Performance.csv").then(data => {
-      // Parse numeric values
-      data.forEach(d => {
-        d.math_score = +d.math_score;
-        d.reading_score = +d.reading_score;
-        d.writing_score = +d.writing_score;
-        d.total_score = +d.total_score;
-        d.average_score = +d.average_score;
-      });
+// Load data
+d3.csv("your_data.csv").then(data => {
+  // Parse numeric values
+  data.forEach(d => {
+    d.math_score = +d.math_score;
+    d.reading_score = +d.reading_score;
+    d.writing_score = +d.writing_score;
+    d.total_score = +d.total_score;
+    d.average_score = +d.average_score;
+  });
 
-      // Initial variables for y and x
-      let yVar = "math_score";
-      let xVar = "gender";
+  // Initial variables for y and x
+  let yVar = "math_score";
+  let xVar = "parental_level_of_education";
 
-      // Function to update chart based on dropdown selection
-      function updateChart() {
-        // Update scales and axis labels dynamically
-        const xScale = d3.scaleBand()
-          .domain([...new Set(data.map(d => d[xVar]))])
-          .range([margin.left, width - margin.right])
-          .padding(0.1);
+  // Function to calculate averages and update chart
+  function updateChart() {
+    // Group data by selected x-variable and calculate average for y-variable
+    const groupedData = Array.from(
+      d3.rollup(
+        data,
+        v => d3.mean(v, d => d[yVar]),  // Calculate mean of the selected yVar for each group
+        d => d[xVar]                    // Group by the selected xVar
+      ),
+      ([key, value]) => ({ xCategory: key, yValue: value })  // Convert Map to array of objects
+    );
 
-        const yScale = d3.scaleLinear()
-          .domain([0, d3.max(data, d => d[yVar])])
-          .nice()
-          .range([height - margin.bottom, margin.top]);
+    // Update scales
+    const xScale = d3.scaleBand()
+      .domain(groupedData.map(d => d.xCategory))
+      .range([margin.left, width - margin.right])
+      .padding(0.1);
 
-        // Remove old elements
-        svg.selectAll("*").remove();
+    const yScale = d3.scaleLinear()
+      .domain([0, d3.max(groupedData, d => d.yValue)])
+      .nice()
+      .range([height - margin.bottom, margin.top]);
 
-        // X Axis
-        svg.append("g")
-          .attr("transform", `translate(0,${height - margin.bottom})`)
-          .call(d3.axisBottom(xScale));
+    // Remove old elements
+    svg.selectAll("*").remove();
 
-        // Y Axis
-        svg.append("g")
-          .attr("transform", `translate(${margin.left},0)`)
-          .call(d3.axisLeft(yScale));
+    // X Axis
+    svg.append("g")
+      .attr("transform", `translate(0,${height - margin.bottom})`)
+      .call(d3.axisBottom(xScale))
+      .selectAll("text")
+      .attr("transform", "rotate(-45)")
+      .style("text-anchor", "end");
 
-        // Bars
-        svg.selectAll("rect")
-          .data(data)
-          .enter()
-          .append("rect")
-          .attr("x", d => xScale(d[xVar]))
-          .attr("y", d => yScale(d[yVar]))
-          .attr("width", xScale.bandwidth())
-          .attr("height", d => height - margin.bottom - yScale(d[yVar]))
-          .attr("fill", "steelblue");
+    // Y Axis
+    svg.append("g")
+      .attr("transform", `translate(${margin.left},0)`)
+      .call(d3.axisLeft(yScale));
 
-        // Add tooltips
-        svg.selectAll("rect")
-          .on("mouseover", (event, d) => {
-            // Tooltip code here (e.g., show a div with score details)
-          });
-      }
+    // Bars
+    svg.selectAll("rect")
+      .data(groupedData)
+      .enter()
+      .append("rect")
+      .attr("x", d => xScale(d.xCategory))
+      .attr("y", d => yScale(d.yValue))
+      .attr("width", xScale.bandwidth())
+      .attr("height", d => height - margin.bottom - yScale(d.yValue))
+      .attr("fill", "steelblue");
+  }
 
-      // Initialize chart
-      updateChart();
+  // Initialize chart
+  updateChart();
 
-      // Event listeners for dropdowns
-      d3.select("#yVariable").on("change", function() {
-        yVar = this.value;
-        updateChart(); // Update chart when y-axis variable changes
-      });
+  // Event listeners for dropdowns
+  d3.select("#yVariable").on("change", function() {
+    yVar = this.value;
+    updateChart(); // Update chart when y-axis variable changes
+  });
 
-      d3.select("#xVariable").on("change", function() {
-        xVar = this.value;
-        updateChart(); // Update chart when x-axis variable changes
-      });
-    });
+  d3.select("#xVariable").on("change", function() {
+    xVar = this.value;
+    updateChart(); // Update chart when x-axis variable changes
+  });
+});
+
   </script>
 </body>
 </html>
