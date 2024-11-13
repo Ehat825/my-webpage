@@ -64,13 +64,15 @@
 
 function updateChart() {
   // Define a custom order for parental education levels
-  const educationLevelsOrder = [
-    "some high school", 
-    "finished high school", 
-    "some college", 
-    "bachelors", 
-    "masters"
+   const educationLevelsOrder = [
+    "some high school",
+    "high school",
+    "some college",
+    "associate's degree",
+    "bachelor's degree",
+    "master's degree"
   ];
+
 
   // Group data by selected x-variable and color variable, calculating averages for y-variable
   const groupedData = Array.from(
