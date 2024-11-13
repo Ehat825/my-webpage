@@ -63,27 +63,21 @@
       let colorVar = "";
 
 function updateChart() {
-  // Define custom order for parental education levels
-  const educationLevelsOrder = [
-    "some high school",
-    "high school",
-    "associate's degree",
-    "some college",
-    "bachelor's degree",
-    "master's degree"
-  ];
-
   // Group data by selected x-variable and color variable, calculating averages for y-variable
   const groupedData = Array.from(
     d3.rollup(
       data,
       v => {
+        // Create groups based on color variable
         const colorGroups = Array.from(
           d3.group(v, d => d[colorVar])
         ).map(([key, values]) => ({
           colorCategory: key,
-          yValue: d3.mean(values, d => d[yVar])
+          yValue: d3.mean(values, d => d[yVar]) || 0 // Ensure yValue is a number, default to 0 if undefined
         }));
+        
+        // Sort color groups by yValue to layer smaller bars on top
+        colorGroups.sort((a, b) => d3.ascending(a.yValue, b.yValue));
         return colorGroups;
       },
       d => d[xVar]
@@ -91,23 +85,19 @@ function updateChart() {
     ([key, value]) => ({ xCategory: key, colorGroups: value })
   );
 
-  // Dynamically set the xScale's domain based on the selected xVar
   const xScale = d3.scaleBand()
-    .domain(
-      xVar === "parental_level_of_education"
-        ? educationLevelsOrder // Use custom order for education levels
-        : Array.from(new Set(data.map(d => d[xVar]))) // Use unique values for other variables
-    )
+    .domain(groupedData.map(d => d.xCategory))
     .range([margin.left, width - margin.right])
     .padding(0.1);
 
   const yScale = d3.scaleLinear()
-    .domain([0, d3.max(groupedData, d => d3.sum(d.colorGroups, g => g.yValue))])
+    .domain([0, d3.max(groupedData, d => d3.max(d.colorGroups, g => g.yValue))])
     .nice()
     .range([height - margin.bottom, margin.top]);
 
   svg.selectAll("*").remove();
 
+  // Set up x-axis and y-axis
   svg.append("g")
     .attr("transform", `translate(0,${height - margin.bottom})`)
     .call(d3.axisBottom(xScale))
@@ -119,39 +109,32 @@ function updateChart() {
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(yScale));
 
+  // Define color scale if colorVar is selected
   colorScale = colorVar
     ? d3.scaleOrdinal(d3.schemeCategory10).domain([...new Set(data.map(d => d[colorVar]))])
     : null;
 
-  svg.selectAll("g.stacked-bar")
+  // Draw bars with overlapping layout
+  svg.selectAll("g.bar-group")
     .data(groupedData)
     .enter()
     .append("g")
-    .attr("class", "stacked-bar")
+    .attr("class", "bar-group")
     .attr("transform", d => `translate(${xScale(d.xCategory)},0)`)
     .selectAll("rect")
-    .data(d => {
-      let cumulative = 0;
-      return d.colorGroups.map(g => {
-        const start = cumulative;
-        cumulative += g.yValue;
-        return {
-          ...g,
-          yStart: start,
-          yEnd: cumulative
-        };
-      });
-    })
+    .data(d => d.colorGroups)
     .enter()
     .append("rect")
     .attr("x", 0)
-    .attr("y", d => yScale(d.yEnd))
+    .attr("y", d => yScale(d.yValue))
     .attr("width", xScale.bandwidth())
-    .attr("height", d => yScale(d.yStart) - yScale(d.yEnd))
+    .attr("height", d => height - margin.bottom - yScale(d.yValue))
     .attr("fill", d => colorScale ? colorScale(d.colorCategory) : "steelblue");
 
+  // Update legend
   updateLegend();
 }
+
 
 
 
