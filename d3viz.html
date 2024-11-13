@@ -63,17 +63,25 @@
       let colorVar = "";
 
 function updateChart() {
+  // Define a custom order for parental education levels
+  const educationLevelsOrder = [
+    "some high school", 
+    "finished high school", 
+    "some college", 
+    "bachelors", 
+    "masters"
+  ];
+
   // Group data by selected x-variable and color variable, calculating averages for y-variable
   const groupedData = Array.from(
     d3.rollup(
       data,
       v => {
-        // Aggregate data by color variable
         const colorGroups = Array.from(
           d3.group(v, d => d[colorVar])
         ).map(([key, values]) => ({
           colorCategory: key,
-          yValue: d3.sum(values, d => d[yVar]) // Sum the values for stacking
+          yValue: d3.mean(values, d => d[yVar])
         }));
         return colorGroups;
       },
@@ -82,8 +90,9 @@ function updateChart() {
     ([key, value]) => ({ xCategory: key, colorGroups: value })
   );
 
+  // Set the xScale's domain using the custom education level order
   const xScale = d3.scaleBand()
-    .domain(groupedData.map(d => d.xCategory))
+    .domain(educationLevelsOrder)
     .range([margin.left, width - margin.right])
     .padding(0.1);
 
@@ -105,12 +114,10 @@ function updateChart() {
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(yScale));
 
-  // Define colorScale if a color variable is selected
   colorScale = colorVar
     ? d3.scaleOrdinal(d3.schemeCategory10).domain([...new Set(data.map(d => d[colorVar]))])
     : null;
 
-  // Stacked bars
   svg.selectAll("g.stacked-bar")
     .data(groupedData)
     .enter()
@@ -133,14 +140,14 @@ function updateChart() {
     .enter()
     .append("rect")
     .attr("x", 0)
-    .attr("y", d => yScale(d.yEnd)) // Position of each section
+    .attr("y", d => yScale(d.yEnd))
     .attr("width", xScale.bandwidth())
-    .attr("height", d => yScale(d.yStart) - yScale(d.yEnd)) // Height of each section
+    .attr("height", d => yScale(d.yStart) - yScale(d.yEnd))
     .attr("fill", d => colorScale ? colorScale(d.colorCategory) : "steelblue");
 
-  // Update legend
   updateLegend();
 }
+
 
       function updateLegend() {
         const legendContainer = d3.select("#legend");
