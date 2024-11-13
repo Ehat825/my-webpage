@@ -34,119 +34,161 @@
 
   <svg width="600" height="400"></svg>
 
-  <script>
-    const svg = d3.select("svg");
-    const width = svg.attr("width");
-    const height = svg.attr("height");
-    const margin = {top: 20, right: 20, bottom: 50, left: 60};
+<script>
+  const svg = d3.select("svg");
+  const width = svg.attr("width");
+  const height = svg.attr("height");
+  const margin = {top: 20, right: 20, bottom: 50, left: 60};
 
-    // Load data
-    d3.csv("Cleaned_Students_Performance.csv").then(data => {
-      // Parse numeric values
-      data.forEach(d => {
-        d.math_score = +d.math_score;
-        d.reading_score = +d.reading_score;
-        d.writing_score = +d.writing_score;
-        d.total_score = +d.total_score;
-        d.average_score = +d.average_score;
-      });
-
-      let yVar = "math_score";
-      let xVar = "parental_level_of_education";
-      let colorVar = "";
-
-      function updateChart() {
-        // Group data by selected x-variable and color variable, calculating averages for y-variable
-        const groupedData = Array.from(
-          d3.rollup(
-            data,
-            v => {
-              const colorGroups = Array.from(
-                d3.group(v, d => d[colorVar])
-              ).map(([key, values]) => ({
-                colorCategory: key,
-                yValue: d3.mean(values, d => d[yVar])
-              }));
-              return colorGroups;
-            },
-            d => d[xVar]
-          ),
-          ([key, value]) => ({ xCategory: key, colorGroups: value })
-        );
-
-        const xScale = d3.scaleBand()
-          .domain(groupedData.map(d => d.xCategory))
-          .range([margin.left, width - margin.right])
-          .padding(0.1);
-
-        const yScale = d3.scaleLinear()
-          .domain([0, d3.max(groupedData, d => d3.sum(d.colorGroups, g => g.yValue))])
-          .nice()
-          .range([height - margin.bottom, margin.top]);
-
-        svg.selectAll("*").remove();
-
-        svg.append("g")
-          .attr("transform", `translate(0,${height - margin.bottom})`)
-          .call(d3.axisBottom(xScale))
-          .selectAll("text")
-          .attr("transform", "rotate(-45)")
-          .style("text-anchor", "end");
-
-        svg.append("g")
-          .attr("transform", `translate(${margin.left},0)`)
-          .call(d3.axisLeft(yScale));
-
-        const colorScale = colorVar
-          ? d3.scaleOrdinal(d3.schemeCategory10).domain([...new Set(data.map(d => d[colorVar]))])
-          : null;
-
-        // Stacked bars
-        svg.selectAll("g.stacked-bar")
-          .data(groupedData)
-          .enter()
-          .append("g")
-          .attr("class", "stacked-bar")
-          .attr("transform", d => `translate(${xScale(d.xCategory)},0)`)
-          .selectAll("rect")
-          .data(d => {
-            let cumulative = 0;
-            return d.colorGroups.map(g => {
-              const start = cumulative;
-              cumulative += g.yValue;
-              return {
-                ...g,
-                yStart: start,
-                yEnd: cumulative
-              };
-            });
-          })
-          .enter()
-          .append("rect")
-          .attr("x", 0)
-          .attr("y", d => yScale(d.yEnd))
-          .attr("width", xScale.bandwidth())
-          .attr("height", d => yScale(d.yStart) - yScale(d.yEnd))
-          .attr("fill", d => colorScale ? colorScale(d.colorCategory) : "steelblue");
-      }
-
-      updateChart();
-
-      d3.select("#yVariable").on("change", function() {
-        yVar = this.value;
-        updateChart();
-      });
-
-      d3.select("#xVariable").on("change", function() {
-        xVar = this.value;
-        updateChart();
-      });
-
-      d3.select("#colorVariable").on("change", function() {
-        colorVar = this.value;
-        updateChart();
-      });
+  // Load data
+  d3.csv("Cleaned_Students_Performance.csv").then(data => {
+    // Parse numeric values
+    data.forEach(d => {
+      d.math_score = +d.math_score;
+      d.reading_score = +d.reading_score;
+      d.writing_score = +d.writing_score;
+      d.total_score = +d.total_score;
+      d.average_score = +d.average_score;
     });
-  </script>
+
+    let yVar = "math_score";
+    let xVar = "parental_level_of_education";
+    let colorVar = "";
+
+    function updateChart() {
+      // Group data by selected x-variable and color variable, calculating averages for y-variable
+      const groupedData = Array.from(
+        d3.rollup(
+          data,
+          v => {
+            const colorGroups = Array.from(
+              d3.group(v, d => d[colorVar])
+            ).map(([key, values]) => ({
+              colorCategory: key,
+              yValue: d3.mean(values, d => d[yVar])
+            }));
+            return colorGroups;
+          },
+          d => d[xVar]
+        ),
+        ([key, value]) => ({ xCategory: key, colorGroups: value })
+      );
+
+      const xScale = d3.scaleBand()
+        .domain(groupedData.map(d => d.xCategory))
+        .range([margin.left, width - margin.right])
+        .padding(0.1);
+
+      const yScale = d3.scaleLinear()
+        .domain([0, d3.max(groupedData, d => d3.sum(d.colorGroups, g => g.yValue))])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+
+      svg.selectAll("*").remove();
+
+      svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(xScale))
+        .selectAll("text")
+        .attr("transform", "rotate(-45)")
+        .style("text-anchor", "end");
+
+      svg.append("g")
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(yScale));
+
+      const colorScale = colorVar
+        ? d3.scaleOrdinal(d3.schemeCategory10).domain([...new Set(data.map(d => d[colorVar]))])
+        : null;
+
+      // Stacked bars
+      svg.selectAll("g.stacked-bar")
+        .data(groupedData)
+        .enter()
+        .append("g")
+        .attr("class", "stacked-bar")
+        .attr("transform", d => `translate(${xScale(d.xCategory)},0)`)
+        .selectAll("rect")
+        .data(d => {
+          let cumulative = 0;
+          return d.colorGroups.map(g => {
+            const start = cumulative;
+            cumulative += g.yValue;
+            return {
+              ...g,
+              yStart: start,
+              yEnd: cumulative
+            };
+          });
+        })
+        .enter()
+        .append("rect")
+        .attr("x", 0)
+        .attr("y", d => yScale(d.yEnd))
+        .attr("width", xScale.bandwidth())
+        .attr("height", d => yScale(d.yStart) - yScale(d.yEnd))
+        .attr("fill", d => colorScale ? colorScale(d.colorCategory) : "steelblue");
+
+      // Update legend
+      updateLegend();
+    }
+
+    function updateLegend() {
+      const legendContainer = d3.select("#legend");
+      legendContainer.selectAll("*").remove();
+
+      if (colorVar && colorScale) {
+        const categories = colorScale.domain();
+        legendContainer.append("h3").text(`Legend for ${colorVar}`);
+        const legend = legendContainer.selectAll(".legend-item")
+          .data(categories)
+          .enter()
+          .append("div")
+          .attr("class", "legend-item")
+          .style("display", "flex")
+          .style("align-items", "center")
+          .style("margin-bottom", "4px");
+
+        legend.append("div")
+          .style("width", "16px")
+          .style("height", "16px")
+          .style("background-color", d => colorScale(d))
+          .style("margin-right", "8px");
+
+        // Map values to meaningful labels
+        legend.append("span").text(d => {
+          switch (colorVar) {
+            case "gender":
+              return d === "1" ? "Male" : "Female";
+            case "lunch":
+              return d === "1" ? "Had Lunch" : "Did Not Have Lunch";
+            case "test_preparation_course":
+              return d === "1" ? "Test Prep" : "No Test Prep";
+            default:
+              return d;
+          }
+        });
+      }
+    }
+
+    updateChart();
+
+    d3.select("#yVariable").on("change", function() {
+      yVar = this.value;
+      updateChart();
+    });
+
+    d3.select("#xVariable").on("change", function() {
+      xVar = this.value;
+      updateChart();
+    });
+
+    d3.select("#colorVariable").on("change", function() {
+      colorVar = this.value;
+      updateChart();
+    });
+  });
+</script>
+
 </body>
 </html>
