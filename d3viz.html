@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -19,9 +19,14 @@
 
     <label for="xVariable">Select Category:</label>
     <select id="xVariable">
-      <option value="gender">Gender</option>
       <option value="race_ethnicity">Race/Ethnicity</option>
       <option value="parental_level_of_education">Parental Education Level</option>
+    </select>
+
+    <label for="colorVariable">Color by:</label>
+    <select id="colorVariable">
+      <option value="">None</option>
+      <option value="gender">Gender</option>
       <option value="lunch">Lunch</option>
       <option value="test_preparation_course">Test Preparation</option>
     </select>
@@ -35,87 +40,86 @@
     const height = svg.attr("height");
     const margin = {top: 20, right: 20, bottom: 50, left: 60};
 
-// Load data
-d3.csv("Cleaned_Students_Performance.csv").then(data => {
-  // Parse numeric values
-  data.forEach(d => {
-    d.math_score = +d.math_score;
-    d.reading_score = +d.reading_score;
-    d.writing_score = +d.writing_score;
-    d.total_score = +d.total_score;
-    d.average_score = +d.average_score;
-  });
+    // Load data
+    d3.csv("Cleaned_Students_Performance.csv").then(data => {
+      // Parse numeric values
+      data.forEach(d => {
+        d.math_score = +d.math_score;
+        d.reading_score = +d.reading_score;
+        d.writing_score = +d.writing_score;
+        d.total_score = +d.total_score;
+        d.average_score = +d.average_score;
+      });
 
-  // Initial variables for y and x
-  let yVar = "math_score";
-  let xVar = "parental_level_of_education";
+      let yVar = "math_score";
+      let xVar = "parental_level_of_education";
+      let colorVar = "";
 
-  // Function to calculate averages and update chart
-  function updateChart() {
-    // Group data by selected x-variable and calculate average for y-variable
-    const groupedData = Array.from(
-      d3.rollup(
-        data,
-        v => d3.mean(v, d => d[yVar]),  // Calculate mean of the selected yVar for each group
-        d => d[xVar]                    // Group by the selected xVar
-      ),
-      ([key, value]) => ({ xCategory: key, yValue: value })  // Convert Map to array of objects
-    );
+      function updateChart() {
+        const groupedData = Array.from(
+          d3.rollup(
+            data,
+            v => d3.mean(v, d => d[yVar]),
+            d => d[xVar]
+          ),
+          ([key, value]) => ({ xCategory: key, yValue: value })
+        );
 
-    // Update scales
-    const xScale = d3.scaleBand()
-      .domain(groupedData.map(d => d.xCategory))
-      .range([margin.left, width - margin.right])
-      .padding(0.1);
+        const xScale = d3.scaleBand()
+          .domain(groupedData.map(d => d.xCategory))
+          .range([margin.left, width - margin.right])
+          .padding(0.1);
 
-    const yScale = d3.scaleLinear()
-      .domain([0, d3.max(groupedData, d => d.yValue)])
-      .nice()
-      .range([height - margin.bottom, margin.top]);
+        const yScale = d3.scaleLinear()
+          .domain([0, d3.max(groupedData, d => d.yValue)])
+          .nice()
+          .range([height - margin.bottom, margin.top]);
 
-    // Remove old elements
-    svg.selectAll("*").remove();
+        svg.selectAll("*").remove();
 
-    // X Axis
-    svg.append("g")
-      .attr("transform", `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(xScale))
-      .selectAll("text")
-      .attr("transform", "rotate(-45)")
-      .style("text-anchor", "end");
+        svg.append("g")
+          .attr("transform", `translate(0,${height - margin.bottom})`)
+          .call(d3.axisBottom(xScale))
+          .selectAll("text")
+          .attr("transform", "rotate(-45)")
+          .style("text-anchor", "end");
 
-    // Y Axis
-    svg.append("g")
-      .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(yScale));
+        svg.append("g")
+          .attr("transform", `translate(${margin.left},0)`)
+          .call(d3.axisLeft(yScale));
 
-    // Bars
-    svg.selectAll("rect")
-      .data(groupedData)
-      .enter()
-      .append("rect")
-      .attr("x", d => xScale(d.xCategory))
-      .attr("y", d => yScale(d.yValue))
-      .attr("width", xScale.bandwidth())
-      .attr("height", d => height - margin.bottom - yScale(d.yValue))
-      .attr("fill", "steelblue");
-  }
+        const colorScale = colorVar
+          ? d3.scaleOrdinal(d3.schemeCategory10).domain([...new Set(data.map(d => d[colorVar]))])
+          : null;
 
-  // Initialize chart
-  updateChart();
+        svg.selectAll("rect")
+          .data(groupedData)
+          .enter()
+          .append("rect")
+          .attr("x", d => xScale(d.xCategory))
+          .attr("y", d => yScale(d.yValue))
+          .attr("width", xScale.bandwidth())
+          .attr("height", d => height - margin.bottom - yScale(d.yValue))
+          .attr("fill", d => colorVar ? colorScale(data.find(item => item[xVar] === d.xCategory)[colorVar]) : "steelblue");
+      }
 
-  // Event listeners for dropdowns
-  d3.select("#yVariable").on("change", function() {
-    yVar = this.value;
-    updateChart(); // Update chart when y-axis variable changes
-  });
+      updateChart();
 
-  d3.select("#xVariable").on("change", function() {
-    xVar = this.value;
-    updateChart(); // Update chart when x-axis variable changes
-  });
-});
+      d3.select("#yVariable").on("change", function() {
+        yVar = this.value;
+        updateChart();
+      });
 
+      d3.select("#xVariable").on("change", function() {
+        xVar = this.value;
+        updateChart();
+      });
+
+      d3.select("#colorVariable").on("change", function() {
+        colorVar = this.value;
+        updateChart();
+      });
+    });
   </script>
 </body>
 </html>
