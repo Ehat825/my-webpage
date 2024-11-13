@@ -63,16 +63,15 @@
       let colorVar = "";
 
 function updateChart() {
-  // Define a custom order for parental education levels
-   const educationLevelsOrder = [
+  // Define custom order for parental education levels
+  const educationLevelsOrder = [
     "some high school",
     "high school",
-    "some college",
     "associate's degree",
+    "some college",
     "bachelor's degree",
     "master's degree"
   ];
-
 
   // Group data by selected x-variable and color variable, calculating averages for y-variable
   const groupedData = Array.from(
@@ -92,9 +91,13 @@ function updateChart() {
     ([key, value]) => ({ xCategory: key, colorGroups: value })
   );
 
-  // Set the xScale's domain using the custom education level order
+  // Dynamically set the xScale's domain based on the selected xVar
   const xScale = d3.scaleBand()
-    .domain(educationLevelsOrder)
+    .domain(
+      xVar === "parental_level_of_education"
+        ? educationLevelsOrder // Use custom order for education levels
+        : Array.from(new Set(data.map(d => d[xVar]))) // Use unique values for other variables
+    )
     .range([margin.left, width - margin.right])
     .padding(0.1);
 
@@ -149,6 +152,7 @@ function updateChart() {
 
   updateLegend();
 }
+
 
 
       function updateLegend() {
