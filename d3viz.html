@@ -75,8 +75,8 @@ function updateChart() {
           yValue: d3.mean(values, d => d[yVar]) || 0 // Ensure yValue is a number
         }));
         
-        // Sort color groups by yValue ascending so the smaller bar is drawn last
-        colorGroups.sort((a, b) => d3.ascending(a.yValue, b.yValue));
+        // Sort color groups by yValue descending so the smaller bar is drawn last
+        colorGroups.sort((a, b) => d3.descending(a.yValue, b.yValue));
         return colorGroups;
       },
       d => d[xVar]
