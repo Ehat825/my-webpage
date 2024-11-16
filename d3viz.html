@@ -12,6 +12,7 @@
   <div>
     <label for="yVariable">Select Score Variable:</label>
     <select id="yVariable">
+      <!-- Dropdown options for score variables (y-axis) -->
       <option value="math_score">Math Score</option>
       <option value="reading_score">Reading Score</option>
       <option value="writing_score">Writing Score</option>
@@ -21,12 +22,14 @@
 
     <label for="xVariable">Select Category:</label>
     <select id="xVariable">
+      <!-- Dropdown options for category variables (x-axis) -->
       <option value="parental_level_of_education">Parental Education Level</option>
       <option value="race_ethnicity">Race/Ethnicity</option>
     </select>
 
     <label for="colorVariable">Color by:</label>
     <select id="colorVariable">
+      <!-- Dropdown options for color grouping -->
       <option value="">None</option>
       <option value="gender">Gender</option>
       <option value="lunch">Lunch</option>
@@ -34,22 +37,24 @@
     </select>
   </div>
 
+  <!-- SVG canvas for the chart -->
   <svg width="600" height="400"></svg>
 
   <!-- Container for the legend -->
   <div id="legend"></div>
 
   <script>
+    // Set up the SVG canvas dimensions
     const svg = d3.select("svg");
     const width = svg.attr("width");
     const height = svg.attr("height");
     const margin = {top: 20, right: 20, bottom: 80, left: 60};
 
-    let colorScale = null; // Define colorScale globally
+    let colorScale = null; // Define colorScale globally for use across functions
 
-    // Load data
+    // Load the CSV data file
     d3.csv("Cleaned_Students_Performance.csv").then(data => {
-      // Parse numeric values
+      // Convert relevant fields to numeric types
       data.forEach(d => {
         d.math_score = +d.math_score;
         d.reading_score = +d.reading_score;
@@ -58,86 +63,95 @@
         d.average_score = +d.average_score;
       });
 
+      // Initialize default variable selections
       let yVar = "math_score";
       let xVar = "parental_level_of_education";
       let colorVar = "";
 
-function updateChart() {
-  // Group data by selected x-variable and color variable, calculating averages for y-variable
-  const groupedData = Array.from(
-    d3.rollup(
-      data,
-      v => {
-        const colorGroups = Array.from(
-          d3.group(v, d => d[colorVar])
-        ).map(([key, values]) => ({
-          colorCategory: key,
-          yValue: d3.mean(values, d => d[yVar]) || 0 // Ensure yValue is a number
-        }));
+      // Function to update the chart based on current selections
+      function updateChart() {
+        // Group data by selected x-variable and color variable, calculating averages for y-variable
+        const groupedData = Array.from(
+          d3.rollup(
+            data,
+            v => {
+              // Group data by color variable and calculate averages for y-variable
+              const colorGroups = Array.from(
+                d3.group(v, d => d[colorVar])
+              ).map(([key, values]) => ({
+                colorCategory: key,
+                yValue: d3.mean(values, d => d[yVar]) || 0 // Default to 0 if no data
+              }));
 
-        // Sort color groups by yValue descending so the smaller bar is drawn last
-        colorGroups.sort((a, b) => d3.descending(a.yValue, b.yValue));
-        return colorGroups;
-      },
-      d => d[xVar]
-    ),
-    ([key, value]) => ({ xCategory: key, colorGroups: value })
-  );
+              // Sort color groups by descending yValue to ensure smaller bars are drawn on top
+              colorGroups.sort((a, b) => d3.descending(a.yValue, b.yValue));
+              return colorGroups;
+            },
+            d => d[xVar] // Group by x-variable
+          ),
+          ([key, value]) => ({ xCategory: key, colorGroups: value })
+        );
 
-  const xScale = d3.scaleBand()
-    .domain(groupedData
-      .map(d => d.xCategory)
-      .sort((a, b) => xVar === "race_ethnicity" ? d3.ascending(a, b) : 0))
-    .range([margin.left, width - margin.right])
-    .padding(0.1);
+        // Create x-axis scale based on x-variable categories
+        const xScale = d3.scaleBand()
+          .domain(groupedData.map(d => d.xCategory)
+            .sort((a, b) => xVar === "race_ethnicity" ? d3.ascending(a, b) : 0))
+          .range([margin.left, width - margin.right])
+          .padding(0.1);
 
-  const yScale = d3.scaleLinear()
-    .domain([0, d3.max(groupedData, d => d3.max(d.colorGroups, g => g.yValue))])
-    .nice()
-    .range([height - margin.bottom, margin.top]);
+        // Create y-axis scale based on y-variable values
+        const yScale = d3.scaleLinear()
+          .domain([0, d3.max(groupedData, d => d3.max(d.colorGroups, g => g.yValue))])
+          .nice()
+          .range([height - margin.bottom, margin.top]);
 
-  svg.selectAll("*").remove();
+        // Clear existing chart elements
+        svg.selectAll("*").remove();
 
-  svg.append("g")
-    .attr("transform", `translate(0,${height - margin.bottom})`)
-    .call(d3.axisBottom(xScale))
-    .selectAll("text")
-    .attr("transform", "rotate(-45)")
-    .style("text-anchor", "end");
+        // Draw x-axis
+        svg.append("g")
+          .attr("transform", `translate(0,${height - margin.bottom})`)
+          .call(d3.axisBottom(xScale))
+          .selectAll("text")
+          .attr("transform", "rotate(-45)")
+          .style("text-anchor", "end");
 
-  svg.append("g")
-    .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(yScale));
+        // Draw y-axis
+        svg.append("g")
+          .attr("transform", `translate(${margin.left},0)`)
+          .call(d3.axisLeft(yScale));
 
-  colorScale = colorVar
-    ? d3.scaleOrdinal()
-        .domain(colorVar === "lunch" ? [...new Set(data.map(d => d[colorVar]))].reverse() : [...new Set(data.map(d => d[colorVar]))])
-        .range(d3.schemeCategory10)
-    : null;
+        // Define color scale
+        colorScale = colorVar
+          ? d3.scaleOrdinal()
+              .domain(colorVar === "lunch" 
+                ? [...new Set(data.map(d => d[colorVar]))].reverse() // Flip colors for "lunch"
+                : [...new Set(data.map(d => d[colorVar]))])
+              .range(d3.schemeCategory10)
+          : null;
 
-  svg.selectAll("g.bar-group")
-    .data(groupedData)
-    .enter()
-    .append("g")
-    .attr("class", "bar-group")
-    .attr("transform", d => `translate(${xScale(d.xCategory)},0)`)
-    .selectAll("rect")
-    .data(d => d.colorGroups)
-    .enter()
-    .append("rect")
-    .attr("x", 0)
-    .attr("y", d => yScale(d.yValue))
-    .attr("width", xScale.bandwidth())
-    .attr("height", d => height - margin.bottom - yScale(d.yValue))
-    .attr("fill", d => colorScale ? colorScale(d.colorCategory) : "steelblue")
-    .style("opacity", (d, i, nodes) => i === nodes.length - 1 ? 1 : 0.7);
+        // Draw stacked bars
+        svg.selectAll("g.bar-group")
+          .data(groupedData)
+          .enter()
+          .append("g")
+          .attr("class", "bar-group")
+          .attr("transform", d => `translate(${xScale(d.xCategory)},0)`)
+          .selectAll("rect")
+          .data(d => d.colorGroups)
+          .enter()
+          .append("rect")
+          .attr("x", 0)
+          .attr("y", d => yScale(d.yValue))
+          .attr("width", xScale.bandwidth())
+          .attr("height", d => height - margin.bottom - yScale(d.yValue))
+          .attr("fill", d => colorScale ? colorScale(d.colorCategory) : "steelblue")
+          .style("opacity", (d, i, nodes) => i === nodes.length - 1 ? 1 : 0.7); // Adjust opacity for overlapping bars
 
-  updateLegend();
-}
+        updateLegend(); // Update the legend to reflect current color mapping
+      }
 
-
-
-
+      // Function to update the legend based on the color scale
       function updateLegend() {
         const legendContainer = d3.select("#legend");
         legendContainer.selectAll("*").remove();
@@ -154,30 +168,29 @@ function updateChart() {
             .style("align-items", "center")
             .style("margin-bottom", "4px");
 
+          // Add color boxes to legend
           legend.append("div")
             .style("width", "16px")
             .style("height", "16px")
             .style("background-color", d => colorScale(d))
             .style("margin-right", "8px");
 
-          // Map values to meaningful labels
+          // Add labels to legend
           legend.append("span").text(d => {
             switch (colorVar) {
-              case "gender":
-                return d === "1" ? "Male" : "Female";
-              case "lunch":
-                return d === "1" ? "Had Lunch" : "Did Not Have Lunch";
-              case "test_preparation_course":
-                return d === "1" ? "Test Prep" : "No Test Prep";
-              default:
-                return d;
+              case "gender": return d === "1" ? "Male" : "Female";
+              case "lunch": return d === "1" ? "Had Lunch" : "Did Not Have Lunch";
+              case "test_preparation_course": return d === "1" ? "Test Prep" : "No Test Prep";
+              default: return d;
             }
           });
         }
       }
 
+      // Initial chart rendering
       updateChart();
 
+      // Event listeners for dropdown changes
       d3.select("#yVariable").on("change", function() {
         yVar = this.value;
         updateChart();
