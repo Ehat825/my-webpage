@@ -93,11 +93,26 @@
         );
 
         // Create x-axis scale based on x-variable categories
+            const educationOrder = [
+              "some high school",
+              "high school",
+              "associate's degree",
+              "some college",
+              "bachelor's degree",
+              "master's degree"
+            ];
+        
         const xScale = d3.scaleBand()
-          .domain(groupedData.map(d => d.xCategory)
-            .sort((a, b) => xVar === "race_ethnicity" ? d3.ascending(a, b) : 0))
-          .range([margin.left, width - margin.right])
-          .padding(0.1);
+  .domain(
+    xVar === "parental_level_of_education"
+      ? educationOrder
+      : xVar === "race_ethnicity"
+        ? groupedData.map(d => d.xCategory).sort((a, b) => d3.ascending(a, b))
+        : groupedData.map(d => d.xCategory)
+  )
+  .range([margin.left, width - margin.right])
+  .padding(0.1);
+
 
         // Create y-axis scale based on y-variable values
         const yScale = d3.scaleLinear()
