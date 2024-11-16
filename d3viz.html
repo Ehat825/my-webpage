@@ -84,10 +84,13 @@ function updateChart() {
     ([key, value]) => ({ xCategory: key, colorGroups: value })
   );
 
-  const xScale = d3.scaleBand()
-    .domain(groupedData.map(d => d.xCategory))
-    .range([margin.left, width - margin.right])
-    .padding(0.1);
+const xScale = d3.scaleBand()
+  .domain(groupedData
+    .map(d => d.xCategory)
+    .sort((a, b) => xVar === "race_ethnicity" ? d3.ascending(a, b) : 0))
+  .range([margin.left, width - margin.right])
+  .padding(0.1);
+
 
   const yScale = d3.scaleLinear()
     .domain([0, d3.max(groupedData, d => d3.max(d.colorGroups, g => g.yValue))])
