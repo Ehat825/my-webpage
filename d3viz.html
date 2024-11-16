@@ -74,7 +74,7 @@ function updateChart() {
           colorCategory: key,
           yValue: d3.mean(values, d => d[yVar]) || 0 // Ensure yValue is a number
         }));
-        
+
         // Sort color groups by yValue descending so the smaller bar is drawn last
         colorGroups.sort((a, b) => d3.descending(a.yValue, b.yValue));
         return colorGroups;
@@ -84,13 +84,12 @@ function updateChart() {
     ([key, value]) => ({ xCategory: key, colorGroups: value })
   );
 
-const xScale = d3.scaleBand()
-  .domain(groupedData
-    .map(d => d.xCategory)
-    .sort((a, b) => xVar === "race_ethnicity" ? d3.ascending(a, b) : 0))
-  .range([margin.left, width - margin.right])
-  .padding(0.1);
-
+  const xScale = d3.scaleBand()
+    .domain(groupedData
+      .map(d => d.xCategory)
+      .sort((a, b) => xVar === "race_ethnicity" ? d3.ascending(a, b) : 0))
+    .range([margin.left, width - margin.right])
+    .padding(0.1);
 
   const yScale = d3.scaleLinear()
     .domain([0, d3.max(groupedData, d => d3.max(d.colorGroups, g => g.yValue))])
@@ -111,10 +110,11 @@ const xScale = d3.scaleBand()
     .call(d3.axisLeft(yScale));
 
   colorScale = colorVar
-    ? d3.scaleOrdinal(d3.schemeCategory10).domain([...new Set(data.map(d => d[colorVar]))])
+    ? d3.scaleOrdinal()
+        .domain(colorVar === "lunch" ? [...new Set(data.map(d => d[colorVar]))].reverse() : [...new Set(data.map(d => d[colorVar]))])
+        .range(d3.schemeCategory10)
     : null;
 
-  // Draw overlapping bars
   svg.selectAll("g.bar-group")
     .data(groupedData)
     .enter()
@@ -130,11 +130,10 @@ const xScale = d3.scaleBand()
     .attr("width", xScale.bandwidth())
     .attr("height", d => height - margin.bottom - yScale(d.yValue))
     .attr("fill", d => colorScale ? colorScale(d.colorCategory) : "steelblue")
-    .style("opacity", (d, i, nodes) => i === nodes.length - 1 ? 1 : 0.7); // Make smaller bar more opaque
+    .style("opacity", (d, i, nodes) => i === nodes.length - 1 ? 1 : 0.7);
 
   updateLegend();
 }
-
 
 
 
