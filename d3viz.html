@@ -226,9 +226,10 @@
   <p>
     I went with a stacked bar chart because it seemed like a good way to visually compare differences across groups. <br>
   This chart uses three interactive dropdown menus to choose which test scores we are comparing, which group it's sorted by on the x-axis, and which group the coloration is split by.<br>
-
-    The data processing was kind of challenging, and I ran into a lot of issues with elements overlapping eachother. In particular making sure it always drew the smaller bar last was tricky.<br> 
-    I also had some isseus with the ordering of the legends, but that was pretty easily solved.<br>
+  The updating based on user selection is handled by svg elements. <br>
+    The data processing was kind of challenging, and I ran into a lot of issues with elements overlapping eachother. In particular making sure it always drew the smaller bar last was tricky.<br>
+    I ended up having to sort them in descending order so the smallest would be drawn last. <br> 
+    I also had some isseus with the ordering of the legends, but that was pretty easily solved by just pre-declaring them.<br>
   </p>
 </div>
 
